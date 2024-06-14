@@ -57,19 +57,6 @@ class _GameScreenState extends State<GameScreen> {
         break;
       }
     }
-    // check win vertical/horizontal
-    // if (coordValues.length == 3 &&
-    //     (coordValues.every((element) => element.x == coordValues[0].x) ||
-    //         coordValues.every((element) => element.y == coordValues[0].y))) {
-    //   if (kDebugMode) {
-    //     print('win');
-    //   }
-    //   return;
-    // }
-    // check win diagonal
-    // [{x: 2, y: 0}, {x: 1, y: 1}, {x: 0, y: 2}]
-    // [{x: 0, y: 0}, {x: 1, y: 1}, {x: 2, y: 2}]
-    // print(coordValues.map((el) => el.toJsonString()).toList());
   }
 
   @override
