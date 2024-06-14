@@ -1,0 +1,1 @@
+enum TicTacType { x, o }

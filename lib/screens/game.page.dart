@@ -1,14 +1,15 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:infinite_tic_tac_toe/constants.dart';
+import 'package:infinite_tic_tac_toe/enums.dart';
 
 class CoOrdValue {
-  final int x;
-  final int y;
   final int position;
-  const CoOrdValue({required this.x, required this.y, required this.position});
+  final TicTacType value;
+  const CoOrdValue({required this.position, required this.value});
   toJsonString() {
-    return {'x': x, 'y': y, 'position': position};
+    return {'position': position, 'value': value.name};
   }
 }
 
@@ -21,39 +22,48 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   Function unOrdDeepEq = const DeepCollectionEquality.unordered().equals;
-  final List<String> combinations = [
-    '012',
-    '048',
-    '036',
-    '147',
-    '246',
-    '258',
-    '345',
-    '678'
-  ];
   List<CoOrdValue> coordValues = <CoOrdValue>[];
+  TicTacType newValue = TicTacType.x;
 
   int position(int x, int y) {
     return (3 * x) + y;
   }
 
-  addCoOrd(int x, int y) {
+  addCoOrd(int x, int y, TicTacType val) {
     setState(() {
-      coordValues.add(CoOrdValue(x: x, y: y, position: position(x, y)));
+      coordValues.add(CoOrdValue(position: position(x, y), value: val));
+      newValue = val == TicTacType.x ? TicTacType.o : TicTacType.x;
     });
-    // remove first
-    if (coordValues.length == 4) {
+    // remove first of type if length is more than 3
+    if (coordValues
+            .where(
+              (element) => element.value == val,
+            )
+            .length ==
+        4) {
+      final targetValues =
+          coordValues.where((element) => element.value == val).toList();
       setState(() {
-        coordValues.removeAt(0);
+        coordValues.remove(targetValues.first);
       });
     }
-    final positionCombo = coordValues.map((el) => el.position).toList();
-    for (var element in combinations) {
+    // check win condiotion for selected value
+    checkWin(val);
+  }
+
+  checkWin(TicTacType val) {
+    final positionCombo = coordValues
+        .where((el) => el.value == val)
+        .map((el) => el.position)
+        .toList();
+    for (var element in Constants.combinations) {
       List<int> arr = element.split("").map((el) => int.parse(el)).toList();
       if (unOrdDeepEq(positionCombo, arr)) {
-        if (kDebugMode) {
-          print('win');
-        }
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("win ${val.name}")));
+        setState(() {
+          coordValues = [];
+        });
         break;
       }
     }
@@ -64,55 +74,72 @@ class _GameScreenState extends State<GameScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final boxSide = screenWidth / 3;
-    return SafeArea(
-      child: SizedBox(
-        height: screenHeight,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-              3,
-              (int x) => Row(
-                    children: List.generate(
-                        3,
-                        (int y) => Container(
-                              height: boxSide,
-                              width: boxSide,
-                              padding: const EdgeInsets.all(4),
-                              child: Card(
-                                margin: const EdgeInsets.all(0),
-                                shape: const BeveledRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(4))),
-                                child: InkWell(
-                                  onTap: () {
-                                    addCoOrd(x, y);
-                                  },
-                                  borderRadius: const BorderRadius.all(
-                                      Radius.circular(4)),
-                                  child: Ink(
-                                    decoration: const BoxDecoration(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(4))),
-                                    child: Center(
-                                        child: coordValues.any((element) =>
-                                                element.x == x &&
-                                                element.y == y)
-                                            ? Text("X",
-                                                style: TextStyle(
-                                                    color: coordValues.length ==
-                                                                3 &&
-                                                            coordValues[0].x ==
-                                                                x &&
-                                                            coordValues[0].y ==
-                                                                y
-                                                        ? Colors.white24
-                                                        : Colors.white))
-                                            : null),
-                                  ),
-                                ),
-                              ),
-                            )),
-                  )),
+    final brightness = MediaQuery.of(context).platformBrightness;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent, statusBarBrightness: brightness),
+      child: SafeArea(
+        child: Scaffold(
+          body: SizedBox(
+            height: screenHeight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(3, (int x) {
+                return Row(
+                  children: List.generate(3, (int y) {
+                    final placeValue = coordValues.firstWhereOrNull(
+                        (element) => position(x, y) == element.position);
+                    var isLastOfKind = false;
+                    if (coordValues
+                            .where(
+                              (element) => element.value == placeValue?.value,
+                            )
+                            .length ==
+                        3) {
+                      isLastOfKind = position(x, y) ==
+                          coordValues
+                              .firstWhereOrNull(
+                                (element) => element.value == placeValue?.value,
+                              )
+                              ?.position;
+                    }
+                    return Container(
+                      height: boxSide,
+                      width: boxSide,
+                      padding: const EdgeInsets.all(4),
+                      child: Card(
+                        margin: const EdgeInsets.all(0),
+                        shape: const BeveledRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(4))),
+                        child: InkWell(
+                          onTap: () {
+                            placeValue == null
+                                ? addCoOrd(x, y, newValue)
+                                : null;
+                          },
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(4)),
+                          child: Ink(
+                            decoration: const BoxDecoration(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(4))),
+                            child: Center(
+                                child: placeValue != null
+                                    ? Text(placeValue.value.name,
+                                        style: TextStyle(
+                                            color: isLastOfKind
+                                                ? Colors.white24
+                                                : Colors.white))
+                                    : null),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                );
+              }),
+            ),
+          ),
         ),
       ),
     );
