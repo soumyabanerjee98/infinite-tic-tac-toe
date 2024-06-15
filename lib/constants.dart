@@ -9,4 +9,6 @@ class Constants {
     '345',
     '678'
   ];
+  static const String ticSound = 'assets/audios/tic.mp3';
+  static const String tacSound = 'assets/audios/tac.mp3';
 }

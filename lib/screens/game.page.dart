@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infinite_tic_tac_toe/constants.dart';
 import 'package:infinite_tic_tac_toe/enums.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:vibration/vibration.dart';
 
 class CoOrdValue {
   final int position;
@@ -24,12 +29,19 @@ class _GameScreenState extends State<GameScreen> {
   Function unOrdDeepEq = const DeepCollectionEquality.unordered().equals;
   List<CoOrdValue> coordValues = <CoOrdValue>[];
   TicTacType newValue = TicTacType.x;
+  TicTacType? winner;
+  double opac = 1;
+  Timer? timer;
+  final int deleteThreshold = 4;
+  final AudioPlayer audioPlayer = AudioPlayer();
 
   int position(int x, int y) {
     return (3 * x) + y;
   }
 
-  addCoOrd(int x, int y, TicTacType val) {
+  addCoOrd(int x, int y, TicTacType val) async {
+    await audioPlayer.setAsset(sound(val));
+    await audioPlayer.play();
     setState(() {
       coordValues.add(CoOrdValue(position: position(x, y), value: val));
       newValue = val == TicTacType.x ? TicTacType.o : TicTacType.x;
@@ -40,7 +52,7 @@ class _GameScreenState extends State<GameScreen> {
               (element) => element.value == val,
             )
             .length ==
-        4) {
+        deleteThreshold) {
       final targetValues =
           coordValues.where((element) => element.value == val).toList();
       setState(() {
@@ -51,7 +63,7 @@ class _GameScreenState extends State<GameScreen> {
     checkWin(val);
   }
 
-  checkWin(TicTacType val) {
+  checkWin(TicTacType val) async {
     final positionCombo = coordValues
         .where((el) => el.value == val)
         .map((el) => el.position)
@@ -59,14 +71,54 @@ class _GameScreenState extends State<GameScreen> {
     for (var element in Constants.combinations) {
       List<int> arr = element.split("").map((el) => int.parse(el)).toList();
       if (unOrdDeepEq(positionCombo, arr)) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("win ${val.name}")));
+        if (await Vibration.hasVibrator() ?? false) {
+          Vibration.vibrate();
+        }
         setState(() {
-          coordValues = [];
+          winner = val;
+        });
+        timer = Timer.periodic(const Duration(milliseconds: 500), (t) {
+          setState(() {
+            opac = t.tick.isOdd ? 1 : 0;
+          });
+        });
+        Future.delayed(const Duration(seconds: 3), () {
+          timer?.cancel();
+          setState(() {
+            winner = null;
+            coordValues = [];
+          });
         });
         break;
       }
     }
+  }
+
+  IconData icon(TicTacType val) {
+    if (val == TicTacType.x) {
+      return FontAwesomeIcons.x;
+    }
+    return FontAwesomeIcons.o;
+  }
+
+  Color iconColor(TicTacType val) {
+    if (val == TicTacType.x) {
+      return Colors.red;
+    }
+    return Colors.blue;
+  }
+
+  String sound(TicTacType val) {
+    if (val == TicTacType.x) {
+      return Constants.ticSound;
+    }
+    return Constants.tacSound;
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   @override
@@ -95,7 +147,7 @@ class _GameScreenState extends State<GameScreen> {
                               (element) => element.value == placeValue?.value,
                             )
                             .length ==
-                        3) {
+                        (deleteThreshold - 1)) {
                       isLastOfKind = position(x, y) ==
                           coordValues
                               .firstWhereOrNull(
@@ -125,11 +177,16 @@ class _GameScreenState extends State<GameScreen> {
                                     BorderRadius.all(Radius.circular(4))),
                             child: Center(
                                 child: placeValue != null
-                                    ? Text(placeValue.value.name,
-                                        style: TextStyle(
-                                            color: isLastOfKind
-                                                ? Colors.white24
-                                                : Colors.white))
+                                    ? Icon(
+                                        icon(placeValue.value),
+                                        color: iconColor(placeValue.value)
+                                            .withOpacity(
+                                                winner == placeValue.value
+                                                    ? opac
+                                                    : isLastOfKind
+                                                        ? 0.6
+                                                        : 1),
+                                      )
                                     : null),
                           ),
                         ),
