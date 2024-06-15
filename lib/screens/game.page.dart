@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -32,27 +33,28 @@ class _GameScreenState extends State<GameScreen> {
   TicTacType? winner;
   double opac = 1;
   Timer? timer;
-  final int deleteThreshold = 4;
-  final AudioPlayer audioPlayer = AudioPlayer();
+  final int deleteThreshold = 3;
+  final AudioPlayer ticPlayer = AudioPlayer();
+  final AudioPlayer tacPlayer = AudioPlayer();
 
   int position(int x, int y) {
     return (3 * x) + y;
   }
 
   addCoOrd(int x, int y, TicTacType val) async {
-    await audioPlayer.setAsset(sound(val));
-    await audioPlayer.play();
+    playSound(val);
     setState(() {
       coordValues.add(CoOrdValue(position: position(x, y), value: val));
       newValue = val == TicTacType.x ? TicTacType.o : TicTacType.x;
     });
-    // remove first of type if length is more than 3
+    log('added');
+    // remove first of type if length is more than delete threshold
     if (coordValues
             .where(
               (element) => element.value == val,
             )
             .length ==
-        deleteThreshold) {
+        deleteThreshold + 1) {
       final targetValues =
           coordValues.where((element) => element.value == val).toList();
       setState(() {
@@ -108,16 +110,27 @@ class _GameScreenState extends State<GameScreen> {
     return Colors.blue;
   }
 
-  String sound(TicTacType val) {
+  playSound(TicTacType val) async {
     if (val == TicTacType.x) {
-      return Constants.ticSound;
+      await ticPlayer.seek(Duration.zero);
+      ticPlayer.play();
+      return;
     }
-    return Constants.tacSound;
+    await tacPlayer.seek(Duration.zero);
+    tacPlayer.play();
+  }
+
+  @override
+  void initState() {
+    ticPlayer.setAudioSource(AudioSource.asset(Constants.ticSound));
+    tacPlayer.setAudioSource(AudioSource.asset(Constants.tacSound));
+    super.initState();
   }
 
   @override
   void dispose() {
-    audioPlayer.dispose();
+    ticPlayer.dispose();
+    tacPlayer.dispose();
     super.dispose();
   }
 
@@ -147,7 +160,7 @@ class _GameScreenState extends State<GameScreen> {
                               (element) => element.value == placeValue?.value,
                             )
                             .length ==
-                        (deleteThreshold - 1)) {
+                        deleteThreshold) {
                       isLastOfKind = position(x, y) ==
                           coordValues
                               .firstWhereOrNull(
