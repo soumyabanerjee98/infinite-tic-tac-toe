@@ -36,6 +36,7 @@ class _GameScreenState extends State<GameScreen> {
   final int deleteThreshold = 3;
   final AudioPlayer ticPlayer = AudioPlayer();
   final AudioPlayer tacPlayer = AudioPlayer();
+  Map<TicTacType, int> scoreBoard = {TicTacType.x: 0, TicTacType.o: 0};
 
   int position(int x, int y) {
     return (3 * x) + y;
@@ -47,7 +48,7 @@ class _GameScreenState extends State<GameScreen> {
       coordValues.add(CoOrdValue(position: position(x, y), value: val));
       newValue = val == TicTacType.x ? TicTacType.o : TicTacType.x;
     });
-    log('added');
+    log('added ${val.name} to position:${position(x, y)}');
     // remove first of type if length is more than delete threshold
     if (coordValues
             .where(
@@ -78,6 +79,7 @@ class _GameScreenState extends State<GameScreen> {
         }
         setState(() {
           winner = val;
+          scoreBoard.update(val, (prev) => prev + 1);
         });
         timer = Timer.periodic(const Duration(milliseconds: 500), (t) {
           setState(() {
@@ -142,76 +144,149 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final statusBarHeight = MediaQuery.of(context).viewPadding.top;
     final boxSide = screenWidth / 3;
     final brightness = MediaQuery.of(context).platformBrightness;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent, statusBarBrightness: brightness),
-      child: SafeArea(
-        child: Scaffold(
-          body: SizedBox(
+      child: Scaffold(
+        body: SafeArea(
+          child: SizedBox(
             height: screenHeight,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(3, (int x) {
-                return Row(
-                  children: List.generate(3, (int y) {
-                    final placeValue = coordValues.firstWhereOrNull(
-                        (element) => position(x, y) == element.position);
-                    var isLastOfKind = false;
-                    if (coordValues
-                            .where(
-                              (element) => element.value == placeValue?.value,
-                            )
-                            .length ==
-                        deleteThreshold) {
-                      isLastOfKind = position(x, y) ==
-                          coordValues
-                              .firstWhereOrNull(
-                                (element) => element.value == placeValue?.value,
-                              )
-                              ?.position;
-                    }
-                    return Container(
-                      height: boxSide,
-                      width: boxSide,
-                      padding: const EdgeInsets.all(4),
-                      child: Card(
-                        margin: const EdgeInsets.all(0),
-                        shape: const BeveledRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(4))),
-                        child: InkWell(
-                          onTap: () {
-                            placeValue == null
-                                ? addCoOrd(x, y, newValue)
-                                : null;
-                          },
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(4)),
-                          child: Ink(
-                            decoration: const BoxDecoration(
+              children: [
+                SizedBox(
+                  height: ((screenHeight - screenWidth) / 2) - statusBarHeight,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [TicTacType.x, TicTacType.o]
+                          .asMap()
+                          .map((key, value) => MapEntry(
+                              key,
+                              SizedBox(
+                                width: screenWidth / 3,
+                                child: Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Wrap(
+                                      direction: Axis.vertical,
+                                      runAlignment: WrapAlignment.center,
+                                      spacing: constraints.maxHeight / 8,
+                                      children: [
+                                        Icon(
+                                          icon(value),
+                                          color: iconColor(value),
+                                        ),
+                                        Text(
+                                          scoreBoard[value].toString(),
+                                          style: const TextStyle(
+                                              fontSize: 24.00,
+                                              fontWeight: FontWeight.w800),
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )))
+                          .values
+                          .toList(),
+                    ),
+                  ),
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(3, (int x) {
+                    return Row(
+                      children: List.generate(3, (int y) {
+                        final placeValue = coordValues.firstWhereOrNull(
+                            (element) => position(x, y) == element.position);
+                        var isLastOfKind = false;
+                        if (coordValues
+                                .where(
+                                  (element) =>
+                                      element.value == placeValue?.value,
+                                )
+                                .length ==
+                            deleteThreshold) {
+                          isLastOfKind = position(x, y) ==
+                              coordValues
+                                  .firstWhereOrNull(
+                                    (element) =>
+                                        element.value == placeValue?.value,
+                                  )
+                                  ?.position;
+                        }
+                        return Container(
+                          height: boxSide,
+                          width: boxSide,
+                          padding: const EdgeInsets.all(4),
+                          child: Card(
+                            margin: const EdgeInsets.all(0),
+                            shape: const BeveledRectangleBorder(
                                 borderRadius:
                                     BorderRadius.all(Radius.circular(4))),
-                            child: Center(
-                                child: placeValue != null
-                                    ? Icon(
-                                        icon(placeValue.value),
-                                        color: iconColor(placeValue.value)
-                                            .withOpacity(
-                                                winner == placeValue.value
-                                                    ? opac
-                                                    : isLastOfKind
-                                                        ? 0.6
-                                                        : 1),
-                                      )
-                                    : null),
+                            child: InkWell(
+                              onTap: () {
+                                placeValue == null
+                                    ? addCoOrd(x, y, newValue)
+                                    : null;
+                              },
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(4)),
+                              child: Ink(
+                                decoration: const BoxDecoration(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(4))),
+                                child: Center(
+                                    child: placeValue != null
+                                        ? Icon(
+                                            icon(placeValue.value),
+                                            color: iconColor(placeValue.value)
+                                                .withOpacity(
+                                                    winner == placeValue.value
+                                                        ? opac
+                                                        : isLastOfKind
+                                                            ? 0.6
+                                                            : 1),
+                                          )
+                                        : null),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                     );
                   }),
-                );
-              }),
+                ),
+                SizedBox(
+                  height: (screenHeight - screenWidth) / 2,
+                  child: winner == null
+                      ? Padding(
+                          padding: const EdgeInsets.all(8.00),
+                          child: Center(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "Turn for: ",
+                                  style: TextStyle(
+                                      fontSize: 20.00,
+                                      fontWeight: FontWeight.w800),
+                                ),
+                                Icon(
+                                  icon(newValue),
+                                  color: iconColor(newValue),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+              ],
             ),
           ),
         ),
