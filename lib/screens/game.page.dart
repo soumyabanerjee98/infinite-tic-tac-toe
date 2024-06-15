@@ -112,18 +112,22 @@ class _GameScreenState extends State<GameScreen> {
 
   playSound(TicTacType val) async {
     if (val == TicTacType.x) {
+      await ticPlayer.stop();
       await ticPlayer.seek(Duration.zero);
       ticPlayer.play();
       return;
     }
+    await tacPlayer.stop();
     await tacPlayer.seek(Duration.zero);
     tacPlayer.play();
   }
 
   @override
   void initState() {
-    ticPlayer.setAudioSource(AudioSource.asset(Constants.ticSound));
-    tacPlayer.setAudioSource(AudioSource.asset(Constants.tacSound));
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ticPlayer.setAsset(Constants.ticSound);
+      await tacPlayer.setAsset(Constants.tacSound);
+    });
     super.initState();
   }
 
