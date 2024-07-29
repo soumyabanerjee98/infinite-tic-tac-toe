@@ -28,8 +28,14 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'Infinite Tic Tac Toe',
-      theme: ThemeData.light(useMaterial3: true),
-      darkTheme: ThemeData.dark(useMaterial3: true),
+      theme: ThemeData(
+          brightness: Brightness.light,
+          useMaterial3: true,
+          fontFamily: 'Montserrat'),
+      darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          useMaterial3: true,
+          fontFamily: 'Montserrat'),
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
       getPages: appRoutes,

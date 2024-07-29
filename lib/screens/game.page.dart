@@ -124,6 +124,24 @@ class _GameScreenState extends State<GameScreen> {
     tacPlayer.play();
   }
 
+  resetScore() {
+    setState(() {
+      scoreBoard = {TicTacType.x: 0, TicTacType.o: 0};
+      coordValues = [];
+    });
+  }
+
+  Color playerTurnColor() {
+    switch (newValue) {
+      case TicTacType.x:
+        return Colors.red;
+      case TicTacType.o:
+        return Colors.blue;
+      default:
+        return Colors.transparent;
+    }
+  }
+
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -159,39 +177,71 @@ class _GameScreenState extends State<GameScreen> {
                 SizedBox(
                   height: ((screenHeight - screenWidth) / 2) - statusBarHeight,
                   child: LayoutBuilder(
-                    builder: (context, constraints) => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [TicTacType.x, TicTacType.o]
-                          .asMap()
-                          .map((key, value) => MapEntry(
-                              key,
-                              SizedBox(
-                                width: screenWidth / 3,
-                                child: Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Wrap(
-                                      direction: Axis.vertical,
-                                      runAlignment: WrapAlignment.center,
-                                      spacing: constraints.maxHeight / 8,
-                                      children: [
-                                        Icon(
-                                          icon(value),
-                                          color: iconColor(value),
+                    builder: (context, constraints) => Column(
+                      children: [
+                        SizedBox(
+                          height: constraints.maxHeight / 2,
+                          child: const Center(
+                            child: Text(
+                              "Scoreboard",
+                              style: TextStyle(
+                                  fontSize: 20.00, fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [TicTacType.x, TicTacType.o]
+                              .asMap()
+                              .map((key, value) => MapEntry(
+                                  key,
+                                  SizedBox(
+                                    width: screenWidth / 2,
+                                    child: Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: value == TicTacType.x
+                                              ? [
+                                                  Icon(
+                                                    icon(value),
+                                                    color: iconColor(value),
+                                                  ),
+                                                  Text(
+                                                    scoreBoard[value]
+                                                        .toString(),
+                                                    style: const TextStyle(
+                                                        fontSize: 24.00,
+                                                        fontWeight:
+                                                            FontWeight.w800),
+                                                  )
+                                                ]
+                                              : [
+                                                  Text(
+                                                    scoreBoard[value]
+                                                        .toString(),
+                                                    style: const TextStyle(
+                                                        fontSize: 24.00,
+                                                        fontWeight:
+                                                            FontWeight.w800),
+                                                  ),
+                                                  Icon(
+                                                    icon(value),
+                                                    color: iconColor(value),
+                                                  ),
+                                                ],
                                         ),
-                                        Text(
-                                          scoreBoard[value].toString(),
-                                          style: const TextStyle(
-                                              fontSize: 24.00,
-                                              fontWeight: FontWeight.w800),
-                                        )
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              )))
-                          .values
-                          .toList(),
+                                  )))
+                              .values
+                              .toList(),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -225,6 +275,7 @@ class _GameScreenState extends State<GameScreen> {
                           child: Card(
                             margin: const EdgeInsets.all(0),
                             shape: const BeveledRectangleBorder(
+                              
                                 borderRadius:
                                     BorderRadius.all(Radius.circular(4))),
                             child: InkWell(
@@ -236,9 +287,16 @@ class _GameScreenState extends State<GameScreen> {
                               borderRadius:
                                   const BorderRadius.all(Radius.circular(4)),
                               child: Ink(
-                                decoration: const BoxDecoration(
+                                decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: (winner != null &&
+                                                winner == placeValue?.value)
+                                            ? Colors.green
+                                            : playerTurnColor()
+                                                .withOpacity(0.1)),
                                     borderRadius:
-                                        BorderRadius.all(Radius.circular(4))),
+                                        const BorderRadius.all(
+                                        Radius.circular(4))),
                                 child: Center(
                                     child: placeValue != null
                                         ? Icon(
@@ -263,27 +321,30 @@ class _GameScreenState extends State<GameScreen> {
                 SizedBox(
                   height: (screenHeight - screenWidth) / 2,
                   child: winner == null
-                      ? Padding(
-                          padding: const EdgeInsets.all(8.00),
-                          child: Center(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  "Turn for: ",
-                                  style: TextStyle(
-                                      fontSize: 20.00,
-                                      fontWeight: FontWeight.w800),
-                                ),
-                                Icon(
-                                  icon(newValue),
-                                  color: iconColor(newValue),
-                                ),
-                              ],
+                      ? Center(
+                          child: Card(
+                          shape: const BeveledRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(4))),
+                          child: InkWell(
+                            onTap: () => resetScore(),
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(4)),
+                            child: Ink(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 8.00, horizontal: 16.00),
+                              decoration: const BoxDecoration(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(4))),
+                              child: const Text(
+                                "Reset Game",
+                                style: TextStyle(
+                                    fontSize: 20.00,
+                                    fontWeight: FontWeight.w800),
+                              ),
                             ),
                           ),
-                        )
+                        ))
                       : null,
                 ),
               ],
